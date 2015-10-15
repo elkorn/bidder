@@ -1,13 +1,8 @@
 module Bidder.State where
 
 import Control.Monad.State
-import Debug.Trace (traceShow)
 
 type Stack = [Int]
-
-traceShow' :: (Show b)
-           => b -> b
-traceShow' arg = traceShow arg arg
 
 push :: Int -> State Stack ()
 push n =
@@ -15,23 +10,24 @@ push n =
   \stack -> ((),n : stack)
 
 get' :: State Stack Stack
-get' = state $ (\s -> (s,s))
+get' =
+  state $
+  (\s -> (s,s))
 
 showState :: State Stack () -> Stack
-showState st = snd $ runState st []
+showState st =
+  snd $
+  runState st []
 
-work :: Int -> State Stack () -> State Stack ()
-work value = do return $ push value
-
-ioWork :: State Stack () -> IO ()
-ioWork previousState =
+work :: Stack -> IO ()
+work previousState =
   do value <- getLine
      let n = read value
-     let newState = work n previousState
-     ioWork newState
+     let (_,newState) =
+           runState (push n) previousState
+     -- print the new state of the stack with the correct initial state, not an empty list.
+     print $ newState
+     work newState
 
 main :: IO ()
-main =
-  do ioWork $
-       state $
-       (\_ -> ((),[]))
+main = work []
