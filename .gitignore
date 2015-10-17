@@ -17,4 +17,4 @@ cabal.sandbox.config
 *.aux
 *.hp
 .stack-work/
-zguide/zguide/
+zguide/
