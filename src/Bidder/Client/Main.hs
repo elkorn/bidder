@@ -2,7 +2,7 @@
 module Main where
 
 import Data.ByteString.Char8 (pack)
-import Control.Monad (forM_, forever)
+import Control.Monad (forever)
 import System.ZMQ4.Monadic
        (runZMQ, socket, Req(..), Sub(..), liftIO, connect, receive, send)
 

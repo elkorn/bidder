@@ -43,8 +43,4 @@ main =
           bind receiver "tcp://*:5555"
           bind publisher "tcp://*:5556"
           send publisher [] $ pack "Starting the auction!"
-          work initialState publisher receiver--   do buffer <- receive responder
-                                              --      liftIO $
-                                              --        do putStrLn $ "received " ++ show buffer
-                                              --           threadDelay 1000
-                                              --      send responder [] "World"
+          work initialState publisher receiver
