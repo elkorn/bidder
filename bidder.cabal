@@ -15,10 +15,42 @@ build-type:          Simple
 -- extra-source-files:  
 cabal-version:       >=1.10
 
-executable bidder
-  main-is:             Main.hs
-  -- other-modules:       
-  -- other-extensions:    
-  build-depends:       base >=4.8 && <4.9, zeromq4-haskell >=0.6 && <0.7, bytestring >=0.10 && <0.11, semigroups >=0.16 && <0.17, random >=1.1 && <1.2, old-locale >=1.0 && <1.1, time >=1.5 && <1.6
+executable server
+  main-is:          Bidder/Server/Main.hs
+  hs-source-dirs:   src
+  build-depends:    HUnit                      >= 1.2
+                  , base                       >= 4.8 && <4.9
+                  , bytestring                 >= 0.10
+                  , zeromq4-haskell            >= 0.6
+                  , transformers               >= 0.4
+
+executable client
+  main-is:          Bidder/Client/Main.hs
+  hs-source-dirs:   src
+  build-depends:    HUnit                      >= 1.2
+                  , base                       >= 4.8 && <4.9
+                  , bytestring                 >= 0.10
+                  , zeromq4-haskell            >= 0.6
+                  , transformers               >= 0.4
+library
+  exposed-modules:  Bidder.State
+                  , Bidder.Client.Main
+                  , Bidder.Server.Main
+                  , Bidder.Utils
+  build-depends:    HUnit                      >= 1.2
+                  , base                       >=4.8 && <4.9
+                  , zeromq4-haskell            >= 0.6
+                  , transformers               >= 0.4
   hs-source-dirs:      src
   default-language:    Haskell2010
+-- executable bidder
+--   main-is:             Main.hs
+--   build-depends:    HUnit                      >= 1.2
+--                   , base                       >=4.8 && <4.9
+--                   , zeromq4-haskell            >= 0.6
+--                   , transformers               >= 0.4
+--   -- other-modules:       
+--   -- -- other-extensions:    
+  -- build-depends:       base >=4.8 && <4.9, zeromq4-haskell >=0.6 && <0.7, bytestring >=0.10 && <0.11, semigroups >=0.16 && <0.17, random >=1.1 && <1.2, old-locale >=1.0 && <1.1, time >=1.5 && <1.6
+  -- hs-source-dirs:      src
+  -- default-language:    Haskell2010
