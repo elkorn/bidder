@@ -15,23 +15,64 @@ import Bidder.Utils
 initialState :: Stack
 initialState = []
 
-work :: Stack -> Socket z Pub -> Socket z Rep -> ZMQ z ()
+type AuctionFunction z = Stack -> Socket z Pub -> Socket z Rep -> ZMQ z ()
+
+work :: AuctionFunction z
 work previousState publisherSocket receiverSocket =
   do buffer <- receive receiverSocket
-     let str = unpack buffer
-     print' $ "Got bid: " ++ str
-     send receiverSocket [] "ACK"
-     let n = read str :: Int
-     let topBid = maybe 0 id $ listToMaybe previousState
-     let (_,newState) =
-           if n > topBid
-              then runState (push n) previousState
-              else ((),previousState)
-     print' newState
-     send publisherSocket [] $
-       pack $ show newState
-     work newState publisherSocket receiverSocket
+     case (unpack buffer) of
+       "JOIN" ->
+         do waitForJoin 1 previousState publisherSocket receiverSocket
+       str ->
+         do print' $ "Got bid: " ++ str
+            send receiverSocket [] "ACK"
+            let n = read str :: Int
+            let topBid =
+                  maybe 0 id $
+                  listToMaybe previousState
+            let (_,newState) =
+                  if n > topBid
+                     then runState (push n) previousState
+                     else ((),previousState)
+            print' newState
+            print' "Publishing new state to clients..."
+            send publisherSocket [] $
+              pack $
+              unwords ["10001",show newState]
+            work newState publisherSocket receiverSocket
 
+-- TODO: (() -> ZMQ z ()) is guerilla laziness. Test if Haskell/zeromq impl. does that for us.
+receiveJoin :: Socket z Rep -> (() -> ZMQ z ()) -> ZMQ z ()
+receiveJoin receiverSocket continuation =
+  do print' "Waiting for a join..."
+     buffer <- receive receiverSocket
+     print' $
+       unwords ["Got",show buffer,"in receiveJoin"]
+     case (unpack buffer) of
+       "JOIN" -> continuation ()
+       _ ->
+         do send receiverSocket [] $
+              ""
+            receiveJoin receiverSocket continuation
+
+waitForJoin :: Int -> AuctionFunction z
+waitForJoin 0 previousState publisherSocket receiverSocket =
+  work previousState publisherSocket receiverSocket
+waitForJoin n previousState publisherSocket receiverSocket =
+  do send receiverSocket [] $
+       pack $ show previousState
+     send publisherSocket [] $
+       pack $
+       unwords ["10001","Clients joining, please wait..."]
+     if (n > 1)
+        then receiveJoin receiverSocket continue  -- drop bids until the client joins
+        else continue ()
+  where continue =
+          (\() ->
+             waitForJoin (n - 1)
+                         previousState
+                         publisherSocket
+                         receiverSocket)
 main :: IO ()
 main =
   do (major,minor,patch) <- version
@@ -42,5 +83,7 @@ main =
           receiver <- socket Rep
           bind receiver "tcp://*:5555"
           bind publisher "tcp://*:5556"
-          send publisher [] $ pack "Starting the auction!"
-          work initialState publisher receiver
+          receiveJoin
+            receiver
+            (\() ->
+               waitForJoin 1 initialState publisher receiver)
