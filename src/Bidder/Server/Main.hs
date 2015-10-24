@@ -6,7 +6,7 @@ import Data.ByteString.Char8 (pack, unpack)
 import Data.Maybe (listToMaybe)
 import System.ZMQ4 (version)
 import System.ZMQ4.Monadic
-       (runZMQ, socket, Socket, Rep(..), Pub(..), ZMQ, bind, receive,
+       (runZMQ, socket, Socket, Router(..), Pub(..), ZMQ, bind, receive,
         send)
 
 import Bidder.State
@@ -15,34 +15,41 @@ import Bidder.Utils
 initialState :: Stack
 initialState = []
 
-type AuctionFunction z = Stack -> Socket z Pub -> Socket z Rep -> ZMQ z ()
+type AuctionFunction z x = Stack -> Socket z Pub -> Socket z Router -> ZMQ z x
 
-work :: AuctionFunction z
+work :: AuctionFunction z ()
 work previousState publisherSocket receiverSocket =
   do buffer <- receive receiverSocket
+     print' buffer
      case (unpack buffer) of
        "JOIN" ->
          do waitForJoin 1 previousState publisherSocket receiverSocket
        str ->
-         do print' $ "Got bid: " ++ str
-            send receiverSocket [] "ACK"
-            let n = read str :: Int
-            let topBid =
-                  maybe 0 id $
-                  listToMaybe previousState
-            let (_,newState) =
-                  if n > topBid
-                     then runState (push n) previousState
-                     else ((),previousState)
-            print' newState
-            print' "Publishing new state to clients..."
-            send publisherSocket [] $
-              pack $
-              unwords ["10001",show newState]
+         do newState <-
+              receiveBid str previousState publisherSocket receiverSocket
             work newState publisherSocket receiverSocket
 
+receiveBid :: String -> AuctionFunction z Stack
+receiveBid bidStr previousState publisherSocket receiverSocket =
+  do print' $ "Got bid: " ++ bidStr
+     send receiverSocket [] "ACK"
+     let n = read bidStr :: Int
+     let topBid =
+           maybe 0 id $
+           listToMaybe previousState
+     let (_,newState) =
+           if n > topBid
+              then runState (push n) previousState
+              else ((),previousState)
+     print' newState
+     print' "Publishing new state to clients..."
+     send publisherSocket [] $
+       pack $
+       unwords ["10001",show newState]
+     return newState
+
 -- TODO: (() -> ZMQ z ()) is guerilla laziness. Test if Haskell/zeromq impl. does that for us.
-receiveJoin :: Socket z Rep -> (() -> ZMQ z ()) -> ZMQ z ()
+receiveJoin :: Socket z Router -> (() -> ZMQ z ()) -> ZMQ z ()
 receiveJoin receiverSocket continuation =
   do print' "Waiting for a join..."
      buffer <- receive receiverSocket
@@ -55,7 +62,7 @@ receiveJoin receiverSocket continuation =
               ""
             receiveJoin receiverSocket continuation
 
-waitForJoin :: Int -> AuctionFunction z
+waitForJoin :: Int -> AuctionFunction z ()
 waitForJoin 0 previousState publisherSocket receiverSocket =
   work previousState publisherSocket receiverSocket
 waitForJoin n previousState publisherSocket receiverSocket =
@@ -80,7 +87,7 @@ main =
        unwords ["Server running 0MQ",show major,show minor,show patch]
      runZMQ $
        do publisher <- socket Pub
-          receiver <- socket Rep
+          receiver <- socket Router
           bind receiver "tcp://*:5555"
           bind publisher "tcp://*:5556"
           receiveJoin

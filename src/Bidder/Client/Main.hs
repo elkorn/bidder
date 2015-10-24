@@ -26,7 +26,7 @@ main =
      send requester [] $
        pack "JOIN"
      print' "Sent JOIN request..."
-     _ <- receive requester
+     -- _ <- receive requester
      forever $
        do auctionStatus <- receive subscriber
           print' $
