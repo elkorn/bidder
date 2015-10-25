@@ -26,11 +26,14 @@ main =
      send requester [] $
        pack "JOIN"
      print' "Sent JOIN request..."
-     -- _ <- receive requester
+     initialState <- receive requester
+     print' $ "Current auction state: " ++ show initialState
      forever $
        do auctionStatus <- receive subscriber
           print' $
-            unwords ["Current auction state:",getAuctionState auctionStatus]
+            unwords ["[PUB]"
+                    ,"Current auction state:"
+                    ,getAuctionState auctionStatus]
           print' "Your bid: "
           bidStr <- liftIO getLine
           let bid = read bidStr :: Int

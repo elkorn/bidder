@@ -21,6 +21,7 @@ executable server
   build-depends:    HUnit                      >= 1.2
                   , base                       >= 4.8 && <4.9
                   , bytestring                 >= 0.10
+                  , semigroups                 >= 0.16
                   , zeromq4-haskell            >= 0.6
                   , transformers               >= 0.4
 
@@ -30,6 +31,7 @@ executable client
   build-depends:    HUnit                      >= 1.2
                   , base                       >= 4.8 && <4.9
                   , bytestring                 >= 0.10
+                  , semigroups                 >= 0.16
                   , zeromq4-haskell            >= 0.6
                   , transformers               >= 0.4
 library
@@ -39,6 +41,7 @@ library
                   , Bidder.Utils
   build-depends:    HUnit                      >= 1.2
                   , base                       >=4.8 && <4.9
+                  , semigroups                 >= 0.16
                   , zeromq4-haskell            >= 0.6
                   , transformers               >= 0.4
   hs-source-dirs:      src
